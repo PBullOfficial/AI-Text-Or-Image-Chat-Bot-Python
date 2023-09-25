@@ -2,8 +2,9 @@ import os
 import openai
 import aiohttp
 from PIL import Image
-import random
+# import random
 import math
+import imghdr
 
 """
 load environment variables from .env file
@@ -170,6 +171,11 @@ async def download_image(url):
         async with session.get(url) as resp:
             if resp.status == 200:
                 image_data = await resp.read()
+                # check if downloaded data is a valid image
+                file_type = imghdr.what(None, h=image_data)
+                if file_type is None:
+                    print("The downloaded file is not a valid image.")
+                    return None
                 return image_data
             else:
                 print(f"Failed to download image: status code {resp.status}")
