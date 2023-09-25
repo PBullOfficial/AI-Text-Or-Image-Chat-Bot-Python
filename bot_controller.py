@@ -188,7 +188,7 @@ async def edit_image(prompt, message):
         convert_image_to_rgba("img_resized.png")
         # await message.reply(content="Converted to RGBA", file=discord.File("img_rgba.png", "output.png"))
         make_image_transparent("img_rgba.png")
-        await message.reply(content="Edit Area", file=discord.File("img_transparent.png", "output.png"))
+        await message.reply(content="Editing area", file=discord.File("img_transparent.png", "output.png"))
         
         if prompt:
             img_url = get_edit("img_rgba.png", "img_transparent.png", prompt) # send edit request to api with prompt
@@ -201,7 +201,7 @@ async def edit_image(prompt, message):
         if img_response is not None:
             img_file = io.BytesIO(img_response) # send as Discord file attachment
             # view = draw_view(prompt, message, api_content=prompt) # format Draw button
-            await message.reply(content="Edit", file=discord.File(img_file, "output.png")) #, view=view) # reply with image, and view for button
+            await message.reply(content="Edited.", file=discord.File(img_file, "output.png")) #, view=view) # reply with image, and view for button
             img_file.close() # close the new BytesIO object
         else:
             await message.reply("Failed to fetch the image.")
