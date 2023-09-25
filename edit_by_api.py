@@ -167,16 +167,23 @@ def check_and_resize_image(filename):
     img.close()
 
 async def download_image(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            if resp.status == 200:
-                image_data = await resp.read()
-                # check if downloaded data is a valid image
-                file_type = imghdr.what(None, h=image_data)
-                if file_type is None:
-                    print("The downloaded file is not a valid image.")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    image_data = await resp.read()
+                    # check if downloaded data is a valid image
+                    file_type = imghdr.what(None, h=image_data)
+                    if file_type is None:
+                        print("The downloaded file is not a valid image.")
+                        return None
+                    return image_data
+                else:
+                    print(f"Failed to download image: status code {resp.status}")
                     return None
-                return image_data
-            else:
-                print(f"Failed to download image: status code {resp.status}")
-                return None
+    except aiohttp.ClientOSError as e:
+        print(f"A network error occurred: {e}")
+        return None
+    except Exception as e:
+        print(f"An unspecified error occurred: {e}")
+        return None

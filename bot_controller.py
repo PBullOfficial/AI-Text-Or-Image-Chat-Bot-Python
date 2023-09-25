@@ -1,6 +1,6 @@
 import discord
 from discord import ui
-from discord.ext import commands
+from discord.ext import commands, tasks
 from text_by_api import get_response
 from edit_by_api import *
 import os
@@ -9,6 +9,7 @@ import io
 import torch
 from diffusers import AutoPipelineForText2Image
 from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS
+import aiohttp
 
 """
 debug logging
@@ -77,32 +78,58 @@ async def on_ready():
     print(f'Logged in as {bot.user.name}')
 
 """
-main function to process message
+error handling for command messages
 """
 @bot.event
-async def on_message(message):
-        
-    prompt = message.content[5:].strip() # get prompt from message content
-    
-    if "\"" in prompt: # string sanitization for quotes
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.reply("Unrecognized command.")
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"Cooldown, try again in {error.retry_after:.2f} seconds.")
+    elif isinstance(error, commands.CommandInvokeError):
+        if isinstance(error.original, aiohttp.ClientOSError):
+            await ctx.reply("A network error occurred. Please try again later.")
+            print(f"Network error: {error.original}")
+        else:
+            await ctx.reply("An error occurred while processing the command.")
+            print(f"An error occurred: {error.original}")
+    else:
+        await ctx.reply("An unspecified error occurred.")
+        print(f"An unspecified error occurred: {error}")
+
+
+"""
+ask command
+"""
+@commands.cooldown(1, 2, commands.BucketType.user)
+@bot.command()
+async def ask(ctx, *, prompt: str):
+    if "\"" in prompt:  # string sanitization for quotes
         prompt = prompt.replace("\"", "")
 
-    if message.content.startswith('!ask'): # text controller
-        response = get_response(prompt) # get response from API
-        api_content = response["content"] # extract only content message from API response
+    response = get_response(prompt)  # get response from API
+    api_content = response["content"]  # extract only content message from API response
 
-        if len(api_content) >= 2000: # paginate response if over Discord's character limit
-            await send_paginated_message(message.channel, api_content, prompt, message)
-        else:
-            view = draw_view(prompt, message, api_content)
-            await message.reply(api_content, view=view)
+    if len(api_content) >= 2000:  # paginate response if over Discord's character limit
+        await send_paginated_message(ctx.channel, api_content, prompt, ctx.message)
+    else:
+        view = draw_view(prompt, ctx.message, api_content)
+        await ctx.reply(api_content, view=view)
 
-    
-    if message.content.startswith('!draw'): # image controller using Diffusers
-        await draw_image(prompt, message)
+"""
+draw command
+"""
+@commands.cooldown(1, 2, commands.BucketType.user)
+@bot.command()
+async def draw(ctx, *, prompt: str):
+    await draw_image(prompt, ctx.message)
 
-    if message.content.startswith('!edit'): # edit controller using API
-        await edit_image(prompt, message)
+"""
+edit command
+"""
+@commands.cooldown(1, 2, commands.BucketType.user)
+async def edit(ctx, *, prompt: str):
+    await edit_image(prompt, ctx.message)
 
 """      
 split response message if over Discord's 2000 character limit
