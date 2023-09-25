@@ -127,6 +127,7 @@ async def draw(ctx, *, prompt: str):
 """
 edit command
 """
+@bot.command()
 @commands.cooldown(1, 2, commands.BucketType.user)
 async def edit(ctx, *, prompt: str):
     await edit_image(prompt, ctx.message)
@@ -215,7 +216,7 @@ async def edit_image(prompt, message):
         convert_image_to_rgba("img_resized.png")
         # await message.reply(content="Converted to RGBA", file=discord.File("img_rgba.png", "output.png"))
         make_image_transparent("img_rgba.png")
-        await message.reply(content="Area to be edited.", file=discord.File("img_transparent.png", "output.png"))
+        await message.reply(content="Area to be edited...", file=discord.File("img_transparent.png", "output.png"))
         
         if prompt:
             img_url = get_edit("img_rgba.png", "img_transparent.png", prompt) # send edit request to api with prompt
