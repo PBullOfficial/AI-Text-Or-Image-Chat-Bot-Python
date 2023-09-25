@@ -1,17 +1,14 @@
 import discord
 from discord import ui
-from discord.ui import Button, View
 from discord.ext import commands
 from text_by_api import get_response
+from edit_by_api import *
 import os
 import logging
-import requests
 import io
 import torch
 from diffusers import AutoPipelineForText2Image
 from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS
-import diffusers
-from PIL import Image
 
 """
 debug logging
@@ -101,6 +98,9 @@ async def on_message(message):
     if message.content.startswith('!draw'): # image controller using Diffusers
         await draw_image(prompt, message)
 
+    if message.content.startswith('!edit'): # edit controller using API
+        await edit_image(prompt, message)
+
 """      
 split response message if over Discord's 2000 character limit
 """
@@ -157,6 +157,46 @@ async def draw_image(prompt, message):
     view = draw_view(prompt, message, api_content=prompt) # format Draw button
     await message.reply(file=discord.File(img_file, "output.png"), view=view) # reply with image, and view for button
     img_file.close() # close the new BytesIO object
+
+"""
+edit image
+"""
+async def edit_image(prompt, message):
+    await message.reply("Editing...") # command acknowledge message
+    filename = "image.png"
+
+    if len(message.attachments) > 0:
+        attachment = message.attachments[0] # retrieve attachment from message
+        url = attachment.url # retrieve url from attachment
+        # await message.reply(f"{url}") # replies with original image
+        response = await download_image(url)
+        if response is not None:
+            with open(filename, 'wb') as f:
+                f.write(response)
+            check_and_resize_image(filename)
+            # await message.reply(content="Resized", file=discord.File("img_resized.png", "output.png"))
+            convert_image_to_rgba("img_resized.png")
+            # await message.reply(content="Converted to RGBA", file=discord.File("img_rgba.png", "output.png"))
+            make_image_transparent("img_rgba.png")
+            await message.reply(content="Edit Area", file=discord.File("img_transparent.png", "output.png"))
+
+    if prompt:
+        img_url = get_edit("img_rgba.png", "img_transparent.png", prompt) # send edit request to api with prompt
+    else:
+        img_url = get_edit("img_rgba.png", "img_transparent.png") # send edit request to api without prompt
+
+    # await message.reply(f"{img_url}") # testing function to ensure url is returned
+    img_response = await download_image(img_url)
+
+    if img_response is not None:
+        img_file = io.BytesIO(img_response) # send as Discord file attachment
+        # view = draw_view(prompt, message, api_content=prompt) # format Draw button
+        await message.reply(content="Edit", file=discord.File(img_file, "output.png")) #, view=view) # reply with image, and view for button
+        img_file.close() # close the new BytesIO object
+    else:
+        await message.reply("Failed to fetch the image.")
+
+
 
 """
 run bot
