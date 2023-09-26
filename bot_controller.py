@@ -21,7 +21,7 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 """
 initialize text-to-image pipeline
 """
-# pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
+# pipe_image = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
 
 """
 initialize text-to-video pipeline
@@ -127,10 +127,10 @@ async def ask(ctx, *, prompt: str = "I'm not sure what to ask you."):
 """
 draw command
 """
-@commands.cooldown(1, 2, commands.BucketType.user)
-@bot.command()
-async def draw(ctx, *, prompt: str = None):
-    await draw_image(prompt, ctx.message)
+# @commands.cooldown(1, 2, commands.BucketType.user)
+# @bot.command()
+# async def draw(ctx, *, prompt: str = None):
+#     await draw_image(prompt, ctx.message)
 
 """
 edit command
