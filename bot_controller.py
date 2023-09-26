@@ -7,9 +7,11 @@ import os
 import logging
 import io
 import torch
-from diffusers import AutoPipelineForText2Image
+from diffusers import AutoPipelineForText2Image, DiffusionPipeline, DPMSolverMultistepScheduler
+from diffusers.utils import export_to_video
 from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS
 import aiohttp
+import subprocess
 
 """
 debug logging
@@ -19,7 +21,13 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 """
 initialize text-to-image pipeline
 """
-pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
+# pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
+
+"""
+initialize text-to-video pipeline
+"""
+pipe = DiffusionPipeline.from_pretrained("damo-vilab/text-to-video-ms-1.7b", torch_dtype=torch.float16, variant="fp16").to("cuda")
+pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
 
 """
 load environment variables from .env file
@@ -131,6 +139,42 @@ edit command
 @commands.cooldown(1, 2, commands.BucketType.user)
 async def edit(ctx, *, prompt: str = None):
     await edit_image(prompt, ctx.message)
+
+"""
+video command
+"""
+@bot.command()
+async def video(ctx, *, prompt: str = None):
+    await generate_video(prompt, ctx.message)
+
+"""
+generate video locally
+"""
+async def generate_video(prompt, message):
+    text = prompt
+    await message.reply("Generating video...")
+    video_frames = pipe(f"{text}", num_inference_steps=25).frames
+    original_video_path = export_to_video(video_frames)
+
+    # re-encode using ffmpeg to ensure compatibility
+    re_encoded_video_path = "re_encoded_output.mp4"
+    cmd = [
+        'ffmpeg',
+        '-y',                                 # overwrites re_encoded_video_path
+        '-i', original_video_path,            # input file
+        '-c:v', 'libx264',                    # video codec to use
+        '-c:a', 'aac',                        # audio codec to use
+        '-profile:v', 'main',                 # H.264 profile
+        '-level', '4.0',                      # H.264 level
+        re_encoded_video_path                 # output file
+    ]
+    subprocess.run(cmd)
+
+    # check if re-encoded video exists and then send it
+    if os.path.exists(re_encoded_video_path):
+        await message.reply(file=discord.File(re_encoded_video_path, "output.mp4"))
+    else:
+        await message.reply("Failed to re-encode the video.")
 
 """      
 split response message if over Discord's 2000 character limit
