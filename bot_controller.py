@@ -103,7 +103,7 @@ ask command
 """
 @commands.cooldown(1, 2, commands.BucketType.user)
 @bot.command()
-async def ask(ctx, *, prompt: str):
+async def ask(ctx, *, prompt: str = "I'm not sure what to ask you."):
     if "\"" in prompt:  # string sanitization for quotes
         prompt = prompt.replace("\"", "")
 
@@ -121,7 +121,7 @@ draw command
 """
 @commands.cooldown(1, 2, commands.BucketType.user)
 @bot.command()
-async def draw(ctx, *, prompt: str):
+async def draw(ctx, *, prompt: str = None):
     await draw_image(prompt, ctx.message)
 
 """
@@ -129,7 +129,7 @@ edit command
 """
 @bot.command()
 @commands.cooldown(1, 2, commands.BucketType.user)
-async def edit(ctx, *, prompt: str):
+async def edit(ctx, *, prompt: str = None):
     await edit_image(prompt, ctx.message)
 
 """      
