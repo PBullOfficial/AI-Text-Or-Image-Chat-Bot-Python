@@ -21,13 +21,20 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 """
 initialize text-to-image pipeline
 """
-# pipe_image = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
+# pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
 
 """
 initialize text-to-video pipeline
 """
-pipe = DiffusionPipeline.from_pretrained("damo-vilab/text-to-video-ms-1.7b", torch_dtype=torch.float16, variant="fp16").to("cuda")
+pipe = DiffusionPipeline.from_pretrained("damo-vilab/text-to-video-ms-1.7b").to("cuda")
 pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+
+"""
+optimize for GPU memory
+"""
+# pipe.enable_model_cpu_offload()
+# pipe.enable_vae_slicing()
+
 
 """
 load environment variables from .env file
@@ -121,8 +128,7 @@ async def ask(ctx, *, prompt: str = "I'm not sure what to ask you."):
     if len(api_content) >= 2000:  # paginate response if over Discord's character limit
         await send_paginated_message(ctx.channel, api_content, prompt, ctx.message)
     else:
-        view = draw_view(prompt, ctx.message, api_content)
-        await ctx.reply(api_content, view=view)
+        await send_normal_message(api_content, prompt, ctx)
 
 """
 draw command
@@ -152,8 +158,8 @@ generate video locally
 """
 async def generate_video(prompt, message):
     text = prompt
-    await message.reply("Generating video...")
-    video_frames = pipe(f"{text}", num_inference_steps=25).frames
+    await message.reply(f"Generating video of {text}...")
+    video_frames = pipe(f"{text}", num_inference_steps=30, num_frames=50).frames
     original_video_path = export_to_video(video_frames)
 
     # re-encode using ffmpeg to ensure compatibility
@@ -175,6 +181,23 @@ async def generate_video(prompt, message):
         await message.reply(file=discord.File(re_encoded_video_path, "output.mp4"))
     else:
         await message.reply("Failed to re-encode the video.")
+
+"""
+send message under character limit (one message)
+"""
+async def send_normal_message(api_content, prompt, ctx):
+    api_content = escape_chars(api_content)
+    view = draw_view(prompt, ctx.message, api_content)
+    await ctx.reply(api_content, view=view)
+
+"""
+escape / and > characters before sending
+"""
+def escape_chars(text):
+    text = text.replace('\\', '\\\\')  # replace \ with \\
+    text = text.replace('/', '\/')  # replace / with \/
+    text = text.replace('> ', '\> ')  # replace > with \>
+    return text
 
 """      
 split response message if over Discord's 2000 character limit
@@ -210,6 +233,7 @@ async def send_paginated_message(channel, api_content, prompt, message):
             await channel.send(chunk)
             start = end # update start index for next chunk
         """
+
 
 """
 draw image
