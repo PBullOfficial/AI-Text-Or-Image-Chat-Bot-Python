@@ -9,6 +9,7 @@ import io
 import torch
 from diffusers import AutoPipelineForText2Image
 from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS
+from free_lunch_utils import register_free_upblock2d, register_free_crossattn_upblock2d
 import aiohttp
 
 """
@@ -19,7 +20,14 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 """
 initialize text-to-image pipeline
 """
-pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
+# model = "warp-ai/wuerstchen" -- unet model required
+pipe = AutoPipelineForText2Image.from_pretrained("f{model}", torch_dtype=torch.float16).to("cuda")
+
+"""
+freeu block registration
+"""
+register_free_upblock2d(pipe, b1=1.2, b2=1.4, s1=0.9, s2=0.2)
+register_free_crossattn_upblock2d(pipe, b1=1.2, b2=1.4, s1=0.9, s2=0.2)
 
 """
 load environment variables from .env file
