@@ -174,8 +174,8 @@ async def draw_image(prompt, message):
     await message.reply("Drawing...") # command acknowledge message
     images = pipe(
         prompt, 
-        width=2048,
-        height=2048,
+        width=1536,
+        height=1536,
         prior_timesteps=DEFAULT_STAGE_C_TIMESTEPS,
         prior_guidance_scale=4.0,
         num_images_per_prompt=1
