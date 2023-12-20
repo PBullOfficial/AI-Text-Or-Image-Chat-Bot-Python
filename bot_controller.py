@@ -19,7 +19,9 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 """
 initialize text-to-image pipeline
 """
-pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=torch.float16).to("cuda")
+device = "cuda"
+dtype = torch.float16
+pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=dtype).to(device)
 
 """
 load environment variables from .env file
@@ -176,9 +178,12 @@ async def draw_image(prompt, message):
         prompt, 
         width=1536,
         height=1536,
+        negative_prompt="blurry, out of focus",
         prior_timesteps=DEFAULT_STAGE_C_TIMESTEPS,
-        prior_guidance_scale=4.0,
-        num_images_per_prompt=1
+        prior_guidance_scale=7.5,
+        decoder_guidance_scale=0.0,
+        num_inference_steps=60,
+        num_images_per_prompt=1,
     ).images
 
     img_byte_arr = io.BytesIO() # hold image in ram
