@@ -178,11 +178,15 @@ async def draw_image(prompt, message):
         prompt, 
         width=1536,
         height=1536,
-        negative_prompt="blurry, out of focus",
+        # repeated some negative_prompts intentionally for emphasis
+        negative_prompt="blurry, out of focus, artifacts, \
+                            too many fingers, too many fingers, \
+                                too many teeth, too many teeth, \
+                                    incomplete objects",
         prior_timesteps=DEFAULT_STAGE_C_TIMESTEPS,
         prior_guidance_scale=7.5,
         decoder_guidance_scale=0.0,
-        num_inference_steps=60,
+        num_inference_steps=80,
         num_images_per_prompt=1,
     ).images
 
