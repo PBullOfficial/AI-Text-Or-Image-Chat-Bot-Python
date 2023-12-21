@@ -3,6 +3,7 @@ from discord import ui
 from discord.ext import commands, tasks
 from text_by_api import get_response
 from edit_by_api import *
+from openai_client import client
 import os
 import logging
 import io
@@ -22,12 +23,6 @@ initialize text-to-image pipeline
 device = "cuda"
 dtype = torch.float16
 pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen", torch_dtype=dtype).to(device)
-
-"""
-load environment variables from .env file
-"""
-from dotenv import load_dotenv
-load_dotenv()
 
 """
 access discord bot token environment variable
@@ -110,7 +105,7 @@ async def ask(ctx, *, prompt: str = "I'm not sure what to ask you."):
         prompt = prompt.replace("\"", "")
 
     response = get_response(prompt)  # get response from API
-    api_content = response["content"]  # extract only content message from API response
+    api_content = response.content  # extract only content message from API response
 
     if len(api_content) >= 2000:  # paginate response if over Discord's character limit
         await send_paginated_message(ctx.channel, api_content, prompt, ctx.message)

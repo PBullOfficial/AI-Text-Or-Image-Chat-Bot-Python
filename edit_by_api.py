@@ -1,5 +1,5 @@
 import os
-import openai
+from openai_client import client
 import aiohttp
 from PIL import Image
 # import random
@@ -7,19 +7,11 @@ import math
 import imghdr
 
 """
-load environment variables from .env file
+sets edit parameters, send request to openai API and receives response
 """
-from dotenv import load_dotenv
-load_dotenv()
-
-"""
-access openai api environment variable
-"""
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
 def get_edit(edit_image, edit_mask, text=" "):
     try:
-        response = openai.Image.create_edit(
+        response = client.images.edit(
             image=open(f"{edit_image}", "rb"),
             mask=open(f"{edit_mask}", "rb"),
             prompt=f"{text}",
@@ -27,11 +19,11 @@ def get_edit(edit_image, edit_mask, text=" "):
             size="1024x1024"
         )
 
-    except openai.error.OpenAIError as e:
+    except client.error.OpenAIError as e:
         print(e.http_status)
         print(e.error)
 
-    return response['data'][0]['url']
+    return response.data[0].url
 
 """
 helper functions to convert images to RGBA, transparent, and <= 4MB for openai api editing
